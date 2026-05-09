@@ -39,7 +39,7 @@ def send_email(self, subject, body, email):
         if response.status_code == 200:
             return f"✅ SUCCESS == {result}"
         else:
-            print(f"Email to {RECIPIENT}: ❌ API Error {response.status}")
+            print(f"Email to {RECIPIENT}: ❌ API Error {response.status_code}")
             raise self.retry(countdown=60)
 
         
