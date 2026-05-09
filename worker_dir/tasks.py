@@ -33,7 +33,7 @@ def send_email(self, subject, body, email):
 
     try:
         response = requests.post(URL, json=payload, headers=headers)
-        result = f"Status {response.status_code}: {response.text}: email ={email}"
+        result = f"Status {response.status_code}: {response.text}"
 
         
         if response.status_code == 200:
