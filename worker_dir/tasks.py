@@ -43,7 +43,7 @@ def commiter(self):
             commit_count += 1
             break
             
-        if commit_count == 0:
+        if commit_count != 0:
             iteration = random.randint(2, 5)
             
             REPO_NAME = "deeptinirmalya/SVD-TECH"
