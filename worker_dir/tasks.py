@@ -54,7 +54,7 @@ def commiter(self):
             
             for i in range(iteration):
                 commit_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                commit_message = f"Automated update - {commit_time}"
+                commit_message = f"Update On - {commit_time}"
 
                 file_content = f"""<!DOCTYPE html>
                                     <html lang="en">
