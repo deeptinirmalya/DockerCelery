@@ -32,58 +32,46 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-
-        today_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        query = f"author:{username} author-date:{today_utc}"
+        iteration = random.randint(2, 5)
         
-        commit_results = g.search_commits(query=query)
+        REPO_NAME = "deeptinirmalya/SVD-TECH"
+        BRANCH_NAME = "main"
+        file_path = "test.txt" 
         
-        commit_count = 0
-        for _ in commit_results:
-            commit_count += 1
-            break
-            
-        if commit_count != 0:
-            iteration = random.randint(2, 5)
-            
-            REPO_NAME = "deeptinirmalya/SVD-TECH"
-            BRANCH_NAME = "main"
-            file_path = "test.txt" 
-            
-            repo = g.get_repo(REPO_NAME)
-            
-            for i in range(iteration):
-                commit_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                commit_message = f"Update On - {commit_time}"
+        repo = g.get_repo(REPO_NAME)
+        
+        for i in range(iteration):
+            commit_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            commit_message = f"Update On - {commit_time}"
 
-                file_content = f"""<!DOCTYPE html>
-                                    <html lang="en">
-                                    <head>
-                                        <meta charset="UTF-8">
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                        <title>Updated</title>
-                                    </head>
-                                    <body>
-                                        <h1>Hello World!</h1>
-                                        <p>This page was updated directly</p>
-                                        <p>Last updated: {commit_time} (Iteration {i+1})</p>
-                                    </body>
-                                    </html>"""
+            file_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updated</title>
+</head>
+<body>
+    <h1>Hello World!</h1>
+    <p>This page was updated directly</p>
+    <p>Last updated: {commit_time} (Iteration {i+1})</p>
+</body>
+</html>"""
 
-                contents = repo.get_contents(file_path, ref=BRANCH_NAME)
+            contents = repo.get_contents(file_path, ref=BRANCH_NAME)
+            
+            repo.update_file(
+                path=file_path,
+                message=commit_message,
+                content=file_content,
+                sha=contents.sha, 
+                branch=BRANCH_NAME
+            )
+            
+            if i < iteration - 1:
+                time.sleep(2)
                 
-                repo.update_file(
-                    path=file_path,
-                    message=commit_message,
-                    content=file_content,
-                    sha=contents.sha, 
-                    branch=BRANCH_NAME
-                )
-                
-                if i < iteration - 1:
-                    time.sleep(2)
-
-        return
+        return f"count is {iteration}"
 
     except Exception as exc:
         raise self.retry(exc=exc)
