@@ -1,5 +1,6 @@
 from flask import Flask
 import os
+from db import get_beat_connection
 
 app = Flask(__name__)
 
