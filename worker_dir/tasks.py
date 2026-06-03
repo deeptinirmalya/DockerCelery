@@ -46,9 +46,9 @@ def commiter(self):
         if commit_count == 0:
             iteration = random.randint(2, 5)
             
-            REPO_NAME = "any-web-bo/lr"
+            REPO_NAME = "deeptinirmalya/SVD-TECH"
             BRANCH_NAME = "main"
-            file_path = "index.html" 
+            file_path = "test.txt" 
             
             repo = g.get_repo(REPO_NAME)
             
@@ -61,11 +61,11 @@ def commiter(self):
                                     <head>
                                         <meta charset="UTF-8">
                                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                        <title>Updated via Python</title>
+                                        <title>Updated</title>
                                     </head>
                                     <body>
                                         <h1>Hello World!</h1>
-                                        <p>This page was updated directly via the GitHub API using Python.</p>
+                                        <p>This page was updated directly</p>
                                         <p>Last updated: {commit_time} (Iteration {i+1})</p>
                                     </body>
                                     </html>"""
