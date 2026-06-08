@@ -7,7 +7,7 @@ import random
 
 from datetime import datetime, timezone
 
-from github import Github, Auth
+from github import Github, Auth, GithubException
 from github.GithubException import UnknownObjectException
 
 
@@ -32,7 +32,8 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-        iteration = random.randint(2, 5)
+        # iteration = random.randint(2, 15)
+        iteration = 15
         
         REPO_NAME = "deeptinirmalya/SVD-TECH"
         BRANCH_NAME = "main"
@@ -69,9 +70,13 @@ def commiter(self):
             )
             
             if i < iteration - 1:
-                time.sleep(2)
+                time.sleep(random.uniform(4.0, 7.0))
                 
         return f"count is {iteration}"
+    except GithubException as e:
+        if e.status == 403 or e.status == 429:
+            raise self.retry(exc=e, countdown=300)
+        raise self.retry(exc=e)
 
     except Exception as exc:
         raise self.retry(exc=exc)
