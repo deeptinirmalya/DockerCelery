@@ -32,8 +32,7 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-        # iteration = random.randint(2, 15)
-        iteration = 15
+        iteration = random.randint(2, 15)
         
         REPO_NAME = "deeptinirmalya/SVD-TECH"
         BRANCH_NAME = "main"
