@@ -24,7 +24,7 @@ load_dotenv()
 def commiter(self):
     token = os.getenv("GITHUB_TOKEN")
     if not token:
-        raise ValueError("Error: GITHUB_TOKEN not found. Make sure your .env file is set up correctly.")
+        raise ValueError("Error: GITHUB_TOKEN not found.")
     
     auth = Auth.Token(token)
     g = Github(auth=auth)
@@ -32,7 +32,7 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-        iteration = random.randint(2, 15)
+        iteration = random.randint(2, 10)
         
         REPO_NAME = "deeptinirmalya/SVD-TECH"
         BRANCH_NAME = "main"
