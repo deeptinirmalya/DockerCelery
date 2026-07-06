@@ -64,8 +64,8 @@ def extract_transaction_from_telegram(
 
         payload = {
             "data": result,
-            "chat_id": chat_id,
-            "caption": caption
+            "chat_id": chat_id if chat_id else None,
+            "caption": caption if caption else None
         }
         _ = requests.post(
             url,
