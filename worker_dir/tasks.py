@@ -10,8 +10,64 @@ from datetime import datetime, timezone
 from github import Github, Auth, GithubException
 from github.GithubException import UnknownObjectException
 
+from .services import extract_navi_transaction, extract_phonepe_transaction, _sanitize_phonepe_data, extract_gpay_transaction, _sanitize_gpay_data
+
+
+
+
+
+from datetime import datetime
+from typing import Dict, Any
+import requests
+
+
 
 load_dotenv()
+# ==== for task managet auto recipt adder ===================m = ==================
+
+@worker_app.task(name="extract_transaction_from_telegram",
+                bind=True, 
+                max_retries=3, 
+                default_retry_delay=60,
+                ignore_result=True  
+            )
+def extract_transaction_from_telegram(
+    self,
+    file_id: str,
+    bot_token: str,
+    gemini_api_key: str,
+    platform: str,
+    model: str = "gemini-2.5-flash",
+) -> Dict[str, Any]:
+    try:
+        platform = platform.lower().strip()
+        
+        if platform in ["navi"]:
+            result = extract_navi_transaction(file_id, bot_token, gemini_api_key, model)
+        elif platform in ["phonepe", "phonpe", "phone_pe"]:
+            result = extract_phonepe_transaction(file_id, bot_token, gemini_api_key, model)
+        elif platform in ["gpay", "google_pay", "google pay", "googlepay"]:
+            result = extract_gpay_transaction(file_id, bot_token, gemini_api_key, model)
+        else:
+            return {
+                "success": False,
+                "error": f"Unknown platform: {platform}. Use 'navi', 'phonepe', or 'gpay'",
+                "data": None,
+            }
+
+        url = "https://borax-carnivore-awoke.ngrok-free.dev/api/expenses/telegram/add-expenses"
+        headers = {
+            "X-API-Key": os.getenv("MASTER_API_KEY")
+        }
+
+        payload = result
+        _ = requests.post(
+            url,
+            headers=headers,
+            json=payload
+        )
+    except Exception as e:
+        raise self.retry(exc=e)
 
 # =====  for github ============================
 @worker_app.task(
