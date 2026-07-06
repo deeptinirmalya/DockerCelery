@@ -34,6 +34,7 @@ load_dotenv()
 def extract_transaction_from_telegram(
     self,
     chat_id: int,
+    caption: str,
     file_id: str,
     bot_token: str,
     gemini_api_key: str,
@@ -63,7 +64,8 @@ def extract_transaction_from_telegram(
 
         payload = {
             "data": result,
-            "chat_id": chat_id
+            "chat_id": chat_id,
+            "caption": caption
         }
         _ = requests.post(
             url,
