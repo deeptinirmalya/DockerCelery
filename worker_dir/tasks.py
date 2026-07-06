@@ -33,6 +33,7 @@ load_dotenv()
             )
 def extract_transaction_from_telegram(
     self,
+    chat_id: int,
     file_id: str,
     bot_token: str,
     gemini_api_key: str,
@@ -49,7 +50,7 @@ def extract_transaction_from_telegram(
         elif platform in ["gpay", "google_pay", "google pay", "googlepay"]:
             result = extract_gpay_transaction(file_id, bot_token, gemini_api_key, model)
         else:
-            return {
+            result = {
                 "success": False,
                 "error": f"Unknown platform: {platform}. Use 'navi', 'phonepe', or 'gpay'",
                 "data": None,
@@ -60,7 +61,10 @@ def extract_transaction_from_telegram(
             "X-API-Key": os.getenv("MASTER_API_KEY")
         }
 
-        payload = result
+        payload = {
+            "data": result,
+            "chat_id": chat_id
+        }
         _ = requests.post(
             url,
             headers=headers,
