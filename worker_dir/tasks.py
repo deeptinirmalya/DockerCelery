@@ -45,16 +45,40 @@ def extract_transaction_from_telegram(
         platform = platform.lower().strip()
         
         if platform in ["navi"]:
-            result = extract_navi_transaction(file_id, bot_token, gemini_api_key, model)
+            payload = {
+                "sucess": True,
+                "error": None,
+                "data": {
+                    "result": extract_navi_transaction(file_id, bot_token, gemini_api_key, model),
+                    "chat_id": chat_id,
+                    "caption": caption
+                }
+            }
         elif platform in ["phonepe", "phonpe", "phone_pe"]:
-            result = extract_phonepe_transaction(file_id, bot_token, gemini_api_key, model)
+            payload = {
+                "sucess": True,
+                "error": None,
+                "data": {
+                    "result": extract_phonepe_transaction(file_id, bot_token, gemini_api_key, model),
+                    "chat_id": chat_id,
+                    "caption": caption
+                }
+            }
         elif platform in ["gpay", "google_pay", "google pay", "googlepay"]:
-            result = extract_gpay_transaction(file_id, bot_token, gemini_api_key, model)
+            payload = {
+                "sucess": True,
+                "error": None,
+                "data": {
+                    "result": extract_gpay_transaction(file_id, bot_token, gemini_api_key, model),
+                    "chat_id": chat_id,
+                    "caption": caption
+                }
+            }
         else:
-            result = {
-                "success": False,
+            payload = {
+                "sucess": False,
                 "error": f"Unknown platform: {platform}. Use 'navi', 'phonepe', or 'gpay'",
-                "data": None,
+                "data": None
             }
 
         url = "https://borax-carnivore-awoke.ngrok-free.dev/api/expenses/telegram/add-expenses"
@@ -62,16 +86,16 @@ def extract_transaction_from_telegram(
             "X-API-Key": os.getenv("MASTER_API_KEY")
         }
 
-        payload = {
-            "data": result,
-            "chat_id": chat_id if chat_id else None,
-            "caption": caption if caption else None
-        }
-        _ = requests.post(
+        json_payload = payload
+        response = requests.post(
             url,
             headers=headers,
-            json=payload
+            json=json_payload,
+            timeout=30
         )
+
+        response.raise_for_status()
+
     except Exception as e:
         raise self.retry(exc=e)
 

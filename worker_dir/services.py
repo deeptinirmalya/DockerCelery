@@ -239,7 +239,6 @@ def extract_phonepe_transaction(
         image_response.raise_for_status()
         image_bytes = image_response.content
         
-        # Determine strict valid mime type
         mime_type = determine_mime_type(file_path, image_response.headers.get("Content-Type", ""))
         
         image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
