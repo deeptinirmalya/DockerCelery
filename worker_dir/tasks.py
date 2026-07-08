@@ -103,13 +103,13 @@ def extract_transaction_from_telegram(
 
         response.raise_for_status()
 
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": f"Details sent from celery ✅"
-                }
-            )
+        # requests.post(
+        #     f"https://api.telegram.org/bot{bot_token}/sendMessage",
+        #     json={
+        #         "chat_id": chat_id,
+        #         "text": f"Details sent from celery ✅"
+        #         }
+        #     )
 
     except Exception as e:
         requests.post(
