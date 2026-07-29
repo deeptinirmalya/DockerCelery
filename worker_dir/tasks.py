@@ -19,7 +19,10 @@ from .services import extract_navi_transaction, extract_phonepe_transaction, _sa
 from datetime import datetime
 from typing import Dict, Any
 import requests
-
+import json
+import hmac
+import hashlib
+import httpx
 
 
 load_dotenv()
@@ -229,3 +232,49 @@ def send_email(self, subject, body, email):
 
     except Exception as e:
         raise self.retry(exc=e)
+
+@worker_app.task(
+    bind=True,
+    max_retries=5,
+    default_retry_delay=10,  # Retries in 10s, 20s, 40s, etc.
+    exponential_backoff=True
+)
+def send_webhook_task(self, client_endpoint_url: str, webhook_secret: str, payload: dict):
+    """
+    Celery task that signs the payload and hits the client endpoint.
+    """
+    try:
+
+
+        # 2. Serialize JSON payload to exact byte representation
+        raw_body = json.dumps(payload, separators=(',', ':')).encode("utf-8")
+
+        # 3. Calculate HMAC SHA-256 Signature
+        signature = hmac.new(
+            webhook_secret.encode('utf-8') if isinstance(webhook_secret, str) else webhook_secret,
+            msg=raw_body,
+            digestmod=hashlib.sha256
+        ).hexdigest()
+
+        # 4. Prepare Headers (Matching the server's expected header)
+        headers = {
+            "Content-Type": "application/json",
+            "X-Signature": signature
+        }
+
+        # 5. Send HTTP POST request to client
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(client_endpoint_url, content=raw_body, headers=headers)
+            
+            # Raise exception for 4xx/5xx HTTP status codes to trigger Celery retry
+            response.raise_for_status()
+
+        return {
+            "status_code": response.status_code,
+            "url": client_endpoint_url,
+            "response": response.text
+        }
+
+    except Exception as exc:
+        # Auto-retry if the client server is down or returns an error
+        raise self.retry(exc=exc)
