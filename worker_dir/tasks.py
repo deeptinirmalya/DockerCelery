@@ -247,6 +247,9 @@ def send_webhook_task(self, client_endpoint_url: str, webhook_secret: str, paylo
 
         raw_body = json.dumps(payload, separators=(',', ':')).encode("utf-8")
 
+        print("RAW BODY:", raw_body)
+        print("SECRET:", repr(webhook_secret))
+
 
         signature = hmac.new(
             webhook_secret.encode('utf-8') if isinstance(webhook_secret, str) else webhook_secret,
