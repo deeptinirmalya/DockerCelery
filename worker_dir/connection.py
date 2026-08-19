@@ -16,12 +16,12 @@ worker_app = Celery(
 
 worker_app.conf.update(
 # --- QUEUE & PRIORITY SETTINGS ---
-    task_queue_max_priority=10,             # Defines max priority level (0 to 10)
-    task_default_priority=5,                # Default priority for tasks if not specified
+    task_queue_max_priority=10,            
+    task_default_priority=5,                
     task_queues=[
         Queue(
-            'celery',                        # Default queue name
-            queue_arguments={'x-max-priority': 10}  # Enforces priority queue in RabbitMQ
+            'priority_celery',                       
+            queue_arguments={'x-max-priority': 10}  
         ),
     ],
     # --- PERFORMANCE & COST SAVING ---
