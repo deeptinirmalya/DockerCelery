@@ -15,7 +15,8 @@ worker_app = Celery(
 )
 
 worker_app.conf.update(
-# --- QUEUE & PRIORITY SETTINGS ---
+    # --- QUEUE & PRIORITY SETTINGS ---
+    task_default_queue='priority_celery',             # Sets default queue to priority_celery
     task_queue_max_priority=10,            
     task_default_priority=5,                
     task_queues=[
@@ -24,6 +25,10 @@ worker_app.conf.update(
             queue_arguments={'x-max-priority': 10}  
         ),
     ],
+    task_routes={
+        'worker_dir.tasks.*': {'queue': 'priority_celery'}, # Automatically routes all tasks in worker_dir.tasks
+    },
+
     # --- PERFORMANCE & COST SAVING ---
     task_acks_late=True,
     worker_prefetch_multiplier=1,
