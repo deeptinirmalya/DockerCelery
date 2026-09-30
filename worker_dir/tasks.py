@@ -200,18 +200,29 @@ def commiter(self):
                 default_retry_delay=60,
                 ignore_result=True  
             )
-def send_email(self, subject, body, email):
+def send_email(
+    self,
+    authority_name,
+    subject,
+    body,
+    receiver_emails: list[str],
+    cc_emails: list[str] | None = None,
+    bcc_emails: list[str] | None = None,
+    body_type="html",
+):
     URL = os.environ.get("EMAIL_API")
     API_KEY = os.environ.get("EMAIL_API_KEY")
-    RECIPIENT = str(email)
+
     
 
     payload = {
         "subject": subject,
         "body": body,
-        "receiver_email": RECIPIENT,
-        "authority_name": f"STARTUP",
-        "body_type": "html"
+        "body_type": body_type,
+        "authority_name": authority_name,
+        "receiver_email": receiver_emails,
+        "cc": cc_emails,
+        "bcc": bcc_emails
     }
 
     headers = {
@@ -227,7 +238,7 @@ def send_email(self, subject, body, email):
         if response.status_code == 200:
             return f"✅ SUCCESS == {result}"
         else:
-            print(f"Email to {RECIPIENT}: ❌ API Error {response.status_code}")
+            # print(f"Email to {RECIPIENT}: ❌ API Error {response.status_code}")
             raise self.retry(countdown=60)
 
     except Exception as e:
