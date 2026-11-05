@@ -143,31 +143,23 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-        iteration = random.randint(2, 10)
+        # iteration = random.randint(2, 10)
+        iteration = 1
         
-        REPO_NAME = "deeptinirmalya/SVD-TECH"
+        REPO_NAME = "deeptinirmalya/personal"
         BRANCH_NAME = "main"
         file_path = "test.txt" 
         
         repo = g.get_repo(REPO_NAME)
+
+        # if random.random() >= 0.70:
+        #     return f"Skipped execution. Count was {iteration}"
         
         for i in range(iteration):
             commit_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             commit_message = f"Update On - {commit_time}"
 
-            file_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Updated</title>
-</head>
-<body>
-    <h1>Hello World!</h1>
-    <p>This page was updated directly</p>
-    <p>Last updated: {commit_time} (Iteration {i+1})</p>
-</body>
-</html>"""
+            file_content = f"updated on {commit_time}"
 
             contents = repo.get_contents(file_path, ref=BRANCH_NAME)
             
