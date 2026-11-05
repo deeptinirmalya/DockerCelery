@@ -143,8 +143,8 @@ def commiter(self):
     try:
         user = g.get_user()
         username = user.login
-        # iteration = random.randint(2, 10)
-        iteration = 1
+        iteration = random.randint(1, 5)
+
         
         REPO_NAME = "deeptinirmalya/personal"
         BRANCH_NAME = "main"
@@ -152,8 +152,8 @@ def commiter(self):
         
         repo = g.get_repo(REPO_NAME)
 
-        # if random.random() >= 0.70:
-        #     return f"Skipped execution. Count was {iteration}"
+        if random.random() >= 0.70:
+            return f"Skipped execution. Count was {iteration}"
         
         for i in range(iteration):
             commit_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
