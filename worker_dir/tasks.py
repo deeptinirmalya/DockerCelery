@@ -1,4 +1,6 @@
 import os
+import base64
+import binascii
 from dotenv import load_dotenv
 from .connection import worker_app
 import requests
@@ -9,14 +11,17 @@ from datetime import datetime, timezone
 
 from github import Github, Auth, GithubException
 from github.GithubException import UnknownObjectException
+from google import genai
+from pushbullet import Pushbullet
+from pydantic import ValidationError
 
-from .services import extract_navi_transaction, extract_phonepe_transaction, _sanitize_phonepe_data, extract_gpay_transaction, _sanitize_gpay_data
 
-
+from .schema import ReceiptRequest, PaymentReceipt
 
 
 
 from datetime import datetime
+from google.genai import types
 from typing import Dict, Any
 import requests
 import json
@@ -26,101 +31,134 @@ import httpx
 
 
 load_dotenv()
+
+
+def notify_user(title: str, body: str) -> bool:
+    api_key = os.getenv("YOUR_PUSHBULLET_API_KEY")
+    if not api_key:
+        return False
+
+    try:
+        Pushbullet(api_key).push_note(title, body)
+        return True
+    except Exception as exc:
+        print(f"Warning: Pushbullet notification failed: {exc}")
+        return False
+
+
 # ==== for task managet auto recipt adder ===================m = ==================
 
-@worker_app.task(name="extract_transaction_from_telegram",
+@worker_app.task(name="extract_transaction_details",
                 bind=True, 
                 max_retries=3, 
                 default_retry_delay=60,
                 ignore_result=True  
             )
-def extract_transaction_from_telegram(
+def extract_transaction_details(
     self,
-    chat_id: int,
-    caption: str,
-    file_id: str,
-    bot_token: str,
-    gemini_api_key: str,
-    platform: str,
-    model: str = "gemini-2.5-flash",
+    payload: ReceiptRequest | Dict[str, Any]
 ) -> Dict[str, Any]:
     try:
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": f"Details reached at celery ✅\n processing...."
-                }
-            )
-        platform = platform.lower().strip()
-        
-        if platform in ["navi"]:
-            payload = {
-                "sucess": True,
-                "error": None,
-                "data": {
-                    "result": extract_navi_transaction(file_id, bot_token, gemini_api_key, model),
-                    "chat_id": chat_id,
-                    "caption": caption
-                }
-            }
-        elif platform in ["phonepe", "phonpe", "phone_pe"]:
-            payload = {
-                "sucess": True,
-                "error": None,
-                "data": {
-                    "result": extract_phonepe_transaction(file_id, bot_token, gemini_api_key, model),
-                    "chat_id": chat_id,
-                    "caption": caption
-                }
-            }
-        elif platform in ["gpay", "google_pay", "google pay", "googlepay"]:
-            payload = {
-                "sucess": True,
-                "error": None,
-                "data": {
-                    "result": extract_gpay_transaction(file_id, bot_token, gemini_api_key, model),
-                    "chat_id": chat_id,
-                    "caption": caption
-                }
-            }
-        else:
-            payload = {
-                "sucess": False,
-                "error": f"Unknown platform: {platform}. Use 'navi', 'phonepe', or 'gpay'",
-                "data": None
-            }
+        receipt_request = ReceiptRequest.model_validate(payload)
+        b64_data = receipt_request.base64_string.strip()
+        if "," in b64_data:
+            b64_data = b64_data.split(",")[-1]
 
-        url = "https://borax-carnivore-awoke.ngrok-free.dev/api/expenses/telegram/add-expenses"
+        try:
+            image_bytes = base64.b64decode(b64_data, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            failure = {
+                "status": "failed",
+                "error": "Invalid base64 receipt image.",
+                "details": str(exc),
+            }
+            notify_user(
+                "Receipt parsing needs attention",
+                "The receipt base64 string is invalid and cannot be recovered by Celery retrying.",
+            )
+            return failure
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            failure = {
+                "status": "failed",
+                "error": "GEMINI_API_KEY is missing from the environment.",
+            }
+            notify_user(
+                "Receipt parsing configuration error",
+                failure["error"],
+            )
+            return failure
+
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
+
+        config = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=PaymentReceipt,
+            temperature=0.1,
+        )
+
+        prompt = (
+            "Analyze this payment receipt image carefully. Identify the platform used (like PhonePe, GPay, etc.) "
+            "and extract the date, time, total amount, sender details, and receiver information. "
+            "Return strictly according to the requested JSON schema."
+        )
+
+        image_part = types.Part.from_bytes(
+            data=image_bytes,
+            mime_type=receipt_request.mime_type
+        )
+
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[prompt, image_part],
+            config=config
+        )
+
+        structured_data = PaymentReceipt.model_validate_json(response.text)
+        receipt_json = structured_data.model_dump()
+
+        url = os.getenv(
+            "RECEIPT_WEBHOOK_URL",
+            "https://borax-carnivore-awoke.ngrok-free.dev/api/expenses/background/add-expenses",
+        )
         headers = {
             "X-API-Key": os.getenv("MASTER_API_KEY")
         }
 
-        json_payload = payload
         response = requests.post(
             url,
             headers=headers,
-            json=json_payload,
+            json=receipt_json,
             timeout=30
         )
 
         response.raise_for_status()
-
-        # requests.post(
-        #     f"https://api.telegram.org/bot{bot_token}/sendMessage",
-        #     json={
-        #         "chat_id": chat_id,
-        #         "text": f"Details sent from celery ✅"
-        #         }
-        #     )
+        return {
+            "status": "success",
+            "receipt": receipt_json,
+            "webhook_status_code": response.status_code,
+        }
 
     except Exception as e:
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": f"Process fail at celery ❌ \n retrying..."
-                }
+        if isinstance(e, (ValidationError, ValueError)):
+            notify_user(
+                "Receipt parsing needs attention",
+                "The receipt input or Gemini response could not be converted into the required JSON schema.\n"
+                f"Error: {e}",
+            )
+            return {
+                "status": "failed",
+                "error": str(e),
+            }
+
+        if self.request.retries >= self.max_retries:
+            notify_user(
+                "Receipt parsing failed after retries",
+                f"The Celery task exhausted its retries and could not finish.\nError: {e}",
             )
         raise self.retry(exc=e)
 
